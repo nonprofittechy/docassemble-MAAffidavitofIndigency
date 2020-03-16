@@ -83,6 +83,10 @@ subquestion: |
   If you were sent this form by an attorney or advocate,
   you can email the signed form to them at the end of the interview.
   They may be able to help you file it with the court.
+  
+  This interview **does not file your form for you**. You can download and
+  [e-file it](http://www.efilema.com/) or you may have an attorney working with
+  you who plans to do the e-filing on your behalf.
 continue button field: intro
 ---
 question: |
@@ -337,6 +341,10 @@ subquestion: |
   % endif
   
   You can still download a copy of your document [here](${affidavitofindigency.url_for()}).
+  
+  This interview **does not file your form for you**. You can download and
+  [e-file it](http://www.efilema.com/) or you may have an attorney working with
+  you who plans to do the e-filing on your behalf.  
   
   If you need to make any changes, click an edit button below:
   
