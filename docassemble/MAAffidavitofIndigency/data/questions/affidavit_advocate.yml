@@ -1,4 +1,10 @@
 ---
+metadata:
+  title: |
+    Affidavit of Indigency
+  tags:
+    - everyone
+---
 include:
   - docassemble.gbls:basic-questions-gbls.yml
 ---
