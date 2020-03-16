@@ -1,0 +1,43 @@
+---
+include:
+  - docassemble.gbls:basic-questions-gbls.yml
+---
+mandatory: True
+code: |
+  client.email  
+  sent_email
+  sent_email_okay
+---
+question: |
+  Who do you want to complete the affidavit of indigency?
+fields:
+  - Your name: advocate_name
+  - Your email: recipient_email
+  - Client's name: client.name.first
+  - Email address: client.email
+    datatype: email
+---
+code: |
+  if task_not_yet_performed('send email'):
+    send_email(to=client,template=email_template,cc=recipient_email)
+  sent_email = True
+---
+event: sent_email_okay
+question: |
+  Okay, we sent ${client} an email with a link to send you the affidavit
+---
+template: email_template
+subject: |
+  ${advocate_name} sent you an Affidavit of Indigency to sign
+content: |
+  Your advocate, ${advocate_name} would like you to sign and return this
+  affidavit of indigency in order to help you with your case.
+  
+  They may work for Greater Boston Legal Services or another non-profit
+  legal aid agency in Massachusetts.
+  
+  You'll have a chance to sign electronically.
+  
+  Click the link below to fill it out and send it.
+  
+  ${interview_url(i="docassemble.MAAffidavitofIndigency:affidavit.yml", recipient_email=recipient_email)}
