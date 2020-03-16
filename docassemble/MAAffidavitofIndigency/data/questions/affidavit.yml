@@ -51,6 +51,9 @@ code: |
   tried_geolocating
   local_housing_court
   set_empty_fees
+  final_review
+  if send_email_copy:
+    sent_email
   ending
 ---
 code: |
@@ -266,6 +269,8 @@ subquestion: |
   You told us that you can't afford to pay the fees and pay for the necessities
   of life. A judge will take a closer look at your income and expenses and decide
   if you qualify for sure.
+  
+  You also must complete a [supplemental affidavit](https://www.mass.gov/doc/supplement-to-the-affidavit-of-indigency/download). Please download, fill out, and print this on your own. It's not part of this interview yet.
   % endif
   
   On the next screen, we'll ask you about the specific fees you want waived.
@@ -284,6 +289,9 @@ fields:
   - State: client.address.state
     code: states_list()
   - Zip: client.address.zip    
+  - Email: client.email
+    datatype: email
+    required: False
 ---
 code: |
   client.address.geolocate()
@@ -305,12 +313,39 @@ fields:
   - Docket number or case number (if known): docket_number
     required: False
 ---
-event: ending
+continue button field: final_review
 question: |
   Summary
 subquestion: |
   Here's the document you just filled out:
   ${affidavitofindigency}
+fields:
+  - Email a copy of this signed affidavit: send_email_copy
+    datatype: yesnowide
+    default: ${url_args.get('recipient_email')}
+  - Email address: email_recipient
+    datatype: email
+    show if: send_email_copy
+    default: ${url_args.get('recipient_email','')}
+---
+event: ending
+question: |
+  All set.
+subquestion: |
+  % if send_email:
+  Okay, we sent your document to ${email_recipient}
+  % endif
+  
+  You can still download a copy of your document [here](${affidavitofindigency.url_for()}).
+  
+  If you need to make any changes, click an edit button below:
+  
+  * [Edit "standard" waiver requests](${url_action("fees['E-filing'].waive")})
+  * [Edit "extra fees and costs"](${url_action("fees['transcript'].amount")})
+  * [Edit name](${url_action("client.name.first")})
+  * [Edit public benefits](${url_action("public_assistance_kinds")})
+  * [Edit income](${url_action("hh_income.value")})
+  * [Edit inability to pay](${url_action("can_afford")})
 ---
 code: |
   need_income = not public_assistance_kinds.any_true()
@@ -324,6 +359,9 @@ code: |
   biweekly = 'Yes' if need_income and hh_income.period == 26 else 'No'
   monthly = 'Yes' if need_income and hh_income.period == 12 else 'No'
   annually = 'Yes' if need_income and hh_income.period == 1 else 'No'     
+---
+code: |
+  filing_fees_amount = fees['E-filing'].amount + fees['Filing fee'].amount if defined("fees['Filing fee'].amount") and fees['Filing fee'].waive else fees['E-filing'].amount
 ---
 reconsider: True
 attachment:
@@ -343,6 +381,23 @@ attachment:
       - "EAEDC": ${yesno(public_assistance_kinds['EAEDC'])}
       - "VA": ${yesno(public_assistance_kinds['VA Benefits'])}
       - "below_poverty_level": ${yesno(household_income_qualifies) if need_income else "No"}
+      - "weekly": ${weekly}
+      - "biweekly": ${biweekly}
+      - "monthly": ${monthly}
+      - "annually": ${annually}
+      - "income_amount": ${hh_income.amount(period_to_use=hh_income.period)}
+      - "household_additional_size": ${household_additional_size if need_income else ''}
+      - "household_size": ${household_size if need_income else ''}
+      - "other_income": ${'Included above' if need_income else ''}
+      - "unable_to_pay": ${noyes(can_afford) if (need_income and not household_income_qualifies) else 'No'}
+      - "fee_filing": "Yes"
+      - "fee_filing_amount": ${currency(filing_fees_amount)}
+      - "fee_appeal": ${yesno(fees['Appeal cost'].waive)}
+      - "fee_appeal_amount": ${currency(fees['Appeal cost'].amount) if fees['Appeal cost'].waive and defined("fees['Appeal cost'].amount") else ''}
+      - "fee_service": ${yesno(fees['Service'].waive)}
+      - "fee_service_amount": ${currency(fees['Service'].amount) if fees['Service'].waive and defined("fees['Service'].amount") else ""}
+      - "fee_other": ${yesno(fees['Other'].waive)}
+      - "fee_other_amount": ${currency(fees['Other'].amount) if fees['Other'].waive and defined("fees['Other'].waive") else ""}      
       - "fee_other_description": ${showifdef("fees['Other'].description")}
       # - "fee_other_description_more": ''
       # - "fee_substitution": No
@@ -360,10 +415,27 @@ attachment:
       - "fee_transcript_amount": ${currency(fees['transcript'].amount) if (fees['transcript'].waive and defined("fees['transcript'].amount")) else ''}
       - "cost_other": ${yesno(fees['Other cost'].waive)}
       - "cost_other_description": ${showifdef("fees['Other cost'].description")}
-      - "cost_other_amount": ${currency(fees['Other cost'].amount) if defined("fees['Other cost'].amount") else ''}
+      - "cost_other_amount": ${currency(fees['Other cost'].amount) if defined("fees['Other cost'].amount") and fees['Other cost'].waive else ''}
       # - "cost_other_description_more": fees['Other cost'].waive
       # - "substitution": No
       # - "substitution_description": something
       - "client_signature": |
           ${ client.signature }
       - "date_signed": ${format_date(today())}
+---
+code: |
+  if task_not_yet_performed("send email"):
+    if defined('client.email'):
+      send_email(to=email_recipient, cc=client, template=email_affidavit, attachments=affidavitofindigency, task="send email")
+    else:
+      send_email(to=email_recipient, template=email_affidavit, attachments=affidavitofindigency, task="send email")
+  sent_email = True
+---
+template: email_affidavit
+subject: |
+  Signed Affidavit of Indigency for ${client}
+content: |
+  ${client} completed and signed the attached affidavit of indigency
+  for ${court} on ${today()}.
+  
+  You can review their answers here ${interview_url()}
