@@ -285,6 +285,7 @@ subquestion: |
   Enter your name and address below.
 fields:
   - Your full name: client.name.first
+    default: ${client}
   - Street address: client.address.address
     address autocomplete: True
   - Unit/apartment: client.address.unit
@@ -317,6 +318,17 @@ fields:
   - Docket number or case number (if known): docket_number
     required: False
 ---
+code: |
+  if url_args.get('recipient_email'):
+    recipient_email = url_args.get('recipient_email')
+    have_email_in_url_args = True
+  elif url_args.get('advocate_email'):
+    recipient_email = url_args.get('advocate_email')
+    have_email_in_url_args = True
+  elif url_args.get('case_email'):
+    recipient_email = url_args.get('case_email')
+    have_email_in_url_args = True
+---
 continue button field: final_review
 question: |
   Summary
@@ -326,11 +338,11 @@ subquestion: |
 fields:
   - Email a copy of this signed affidavit: send_email_copy
     datatype: yesnowide
-    default: ${url_args.get('recipient_email')}
+    default: ${have_email_in_url_args}
   - Email address: email_recipient
     datatype: email
     show if: send_email_copy
-    default: ${url_args.get('recipient_email','')}
+    default: ${recipient_email}
 ---
 event: ending
 question: |
@@ -432,11 +444,17 @@ attachment:
       - "date_signed": ${format_date(today())}
 ---
 code: |
+  if url_args.get('advocate_email'):
+    email_recipient_list = [url_args.get('advocate_email'), recipient_email]
+  else:
+    email_recipient_list = email_recipient
+---
+code: |
   if task_not_yet_performed("send email"):
     if defined('client.email'):
       send_email(to=email_recipient, cc=client, template=email_affidavit, attachments=affidavitofindigency, task="send email")
     else:
-      send_email(to=email_recipient, template=email_affidavit, attachments=affidavitofindigency, task="send email")
+      send_email(to=email_recipient_list, template=email_affidavit, attachments=affidavitofindigency, task="send email")
   sent_email = True
 ---
 template: email_affidavit
