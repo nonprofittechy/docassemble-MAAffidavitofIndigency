@@ -18,14 +18,29 @@ question: |
   Who do you want to complete the affidavit of indigency?
 fields:
   - Your name: advocate_name
-  - Your email: recipient_email
+    default: ${advocate if defined('advocate.name.first') else ''}
+  - Legal Server Case's email: case_email
+    default: ${ls_fields.get('case_email','')}
+    required: False
+  - Your email: advocate_email
+    default: ${advocate.email if defined('advocate.email') else ''}
+    required: False
   - Client's name: client.name.first
-  - Email address: client.email
+  - Client email address: client.email
     datatype: email
+  - Client phone number: client.phone_number
+    required: False
+validation code: |
+  if (not defined('advocate_email') or advocate_email == '') or (not defined('case_email') or case_email == ''):
+    validation_error("You need to include the Legal Server case's address or your own, or both")
+  else:
+    recipient_email = advocate_email if (defined('advocate_email') and advocate_email) else case_email
 ---
 code: |
   if task_not_yet_performed('send email'):
-    send_email(to=client,template=email_template,cc=recipient_email)
+    send_email(to=client,template=email_template,cc=recipient_email,task='send email')
+  if task_not_yet_performed('send sms'):
+    send_sms(to=client,template=email_template,task='send sms')
   sent_email = True
 ---
 event: sent_email_okay
@@ -46,4 +61,4 @@ content: |
   
   Click the link below to fill it out and send it.
   
-  ${interview_url(i="docassemble.MAAffidavitofIndigency:affidavit.yml", recipient_email=recipient_email)}
+  ${interview_url(i="docassemble.MAAffidavitofIndigency:affidavit.yml", case_email=case_email,client_name=str(client.name),advocate_email=advocate.email)}
