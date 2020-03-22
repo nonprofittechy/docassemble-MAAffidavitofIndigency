@@ -28,8 +28,9 @@ fields:
   - Client's name: client.name.first
   - Client email address: client.email
     datatype: email
-  - Client phone number: client.phone_number
+  - Client phone number: client.mobile_number
     required: False
+    default: ${client.mobile_number if defined('client.mobile_number') else client.phone_number if defined('client.phone_number') else ''}
 validation code: |
   if (not defined('advocate_email') or advocate_email == '') or (not defined('case_email') or case_email == ''):
     validation_error("You need to include the Legal Server case's address or your own, or both")
@@ -40,7 +41,7 @@ code: |
   if task_not_yet_performed('send email'):
     send_email(to=client,template=email_template,cc=recipient_email,task='send email')
   if task_not_yet_performed('send sms'):
-    send_sms(to=client,template=email_template,task='send sms')
+    send_sms(to=client.mobile_number,template=email_template,task='send sms')
   sent_email = True
 ---
 event: sent_email_okay
