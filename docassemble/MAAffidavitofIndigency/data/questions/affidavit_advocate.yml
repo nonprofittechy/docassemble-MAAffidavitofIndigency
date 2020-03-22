@@ -30,7 +30,7 @@ fields:
     datatype: email
   - Client phone number: client.mobile_number
     required: False
-    default: ${client.mobile_number if defined('client.mobile_number') else client.phone_number if defined('client.phone_number') else ''}
+    default: ${client.mobile_number if defined('client.mobile_number') and len(client.mobile_number) > 0 else client.phone_number if defined('client.phone_number') else ''}
 validation code: |
   if (not defined('advocate_email') or advocate_email == '') or (not defined('case_email') or case_email == ''):
     validation_error("You need to include the Legal Server case's address or your own, or both")
