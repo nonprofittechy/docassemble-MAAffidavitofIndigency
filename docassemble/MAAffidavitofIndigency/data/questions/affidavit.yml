@@ -328,6 +328,9 @@ code: |
   elif url_args.get('case_email'):
     recipient_email = url_args.get('case_email')
     have_email_in_url_args = True
+  else:
+    have_email_in_url_args = False
+    recipient_email = ""
 ---
 continue button field: final_review
 question: |
