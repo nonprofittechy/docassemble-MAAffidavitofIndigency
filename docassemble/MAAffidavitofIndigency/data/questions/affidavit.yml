@@ -246,7 +246,7 @@ subquestion: |
   ----|-------|-------
   % for fee in fees:
   % if fees[fee].waive:
-  ${fee} | ${currency(fees[fee].amount) if fees[fee].amount else '' } | ${action_button_html(url_action("fees['"+ fee + "'].waive"))}
+  ${fee} | ${currency(fees[fee].amount) if hasattr(fees[fee],'amount') else '' } | ${action_button_html(url_action("fees['"+ fee + "'].waive"))}
   % endif
   % endfor
 
